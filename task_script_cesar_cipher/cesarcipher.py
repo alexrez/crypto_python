@@ -40,7 +40,10 @@ parser_makemodel.add_argument('--out-file', dest='out', type=str, default='model
                               help='frequency model file (default: model.file)')
 parser_makemodel.set_defaults(func=cm.makemodel)
 
+def run(parser_):
+    args = parser_.parse_args()
+    # print(args)
+    args.func(args)
 
-args = parser.parse_args()
-# print(args)
-args.func(args)
+if __name__ == '__main__':
+    run(parser)
