@@ -132,6 +132,8 @@ class RSACrypto():
         concat_mes = ''.join(['{0:>0{width}b}'.format(t, width=8) for t in message])
         block_len_ = self.block_len
         split_mes = [concat_mes[i: i + block_len_] for i in range(0, len(concat_mes), block_len_)]
+        if len(split_mes[-1]) < block_len_:
+            split_mes[-1] += '0' * (block_len_ - len(split_mes[-1]))
         return ''.join(['{0:>0{width}x}'.format(block, width=block_len_) for block in [self.encrypt(int(m, 2)) for m in split_mes]])
 
 
@@ -139,6 +141,8 @@ class RSACrypto():
         block_len_ = self.block_len
         blocked_text = [self.decrypt(int(cyphertext[i: i + block_len_], 16)) for i in range(0, len(cyphertext), block_len_)]
         concat_mes = ''.join(['{0:>0{width}b}'.format(block, width=block_len_) for block in blocked_text])
+        while concat_mes[-1] == 0:
+            concat_mes = concat_mes[:-1]
         return [int(concat_mes[i: i + 8], 2) for i in range(0, len(concat_mes), 8)]
 
 
@@ -146,12 +150,15 @@ def gen_keys(number, half_len=256):
     # half_len- битовая длина простых чисел p и q
     left_border = (1 << (half_len - 1)) + 1
     right_border = (1 << half_len) - 1
-    p = rsafunc.get_next_prime(random.randint(left_border, right_border))
-    while p > right_border:
+
+    while True:
         p = rsafunc.get_next_prime(random.randint(left_border, right_border))
-    q = rsafunc.get_next_prime(random.randint(left_border, right_border))
-    while p == q or q > right_border:
+        if p <= right_border:
+            break
+    while True:
         q = rsafunc.get_next_prime(random.randint(left_border, right_border))
+        if p != q and q <= right_border:
+            break
 
     N = p * q
     phi_N = (p - 1) * (q - 1)
@@ -160,22 +167,15 @@ def gen_keys(number, half_len=256):
     while gcd_ != 1:
         e = random.randint(2, phi_N - 1)
         gcd_, d = rsafunc.gcd(phi_N, e)
-    # print(e, d, N)
+    # print(p, q, e, d, N)
     return RSACrypto(RSAPubKey(e, N), RSASecKey(d, N))
 
 
-# rsa = gen_keys(1234567, 4)
-# print(rsa.block_len)
-# encr = rsa.encrypt(3) 
-# print(encr)
-
-# print(rsa.decrypt(encr))
-
-
-
-
-
-
-
-
+if __name__ == '__main__':
+    rsa = gen_keys(12345676789)
+    encr = rsa.encrypts('''RSA (Rivest-Shamir-Adleman) is one of the first public-key cryptosystems and is widely used for secure data transmission.
+        In such a cryptosystem, the encryption key is public and it is different from the decryption key which is kept secret (private).
+        In RSA, this asymmetry is based on the practical difficulty of the factorization of the product of two large prime numbers, 
+        the "factoring problem". ''') 
+    print(rsa.decrypts(encr))
 
